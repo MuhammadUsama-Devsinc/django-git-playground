@@ -17,10 +17,6 @@ GENERATE_QR_CODE_URL = reverse('authentication:generate_qr_code')
 VERIFY_MFA_URL = reverse('authentication:verify_otp')
 LOGOUT_URL = reverse('authentication:logout')
 USER_DETAILS_URL = reverse('authentication:user-detail')
-print(
-    LOGIN_URL,
-GENERATE_QR_CODE_URL, VERIFY_MFA_URL, LOGOUT_URL, USER_DETAILS_URL
-)
 
 @pytest.mark.django_db
 class TestAuthenticationAPIs:
