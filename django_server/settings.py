@@ -105,7 +105,7 @@ DATABASES = {
     }
 }
 
-if env('DB_ENGINE') == 'postgres':
+if env('DB_ENGINE') == 'postgresql':
     DATABASES['default']['USER'] = env('DB_USER')
     DATABASES['default']['PASSWORD'] = env('DB_PASSWORD')
     DATABASES['default']['HOST'] = env('DB_HOST')
