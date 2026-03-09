@@ -1,0 +1,54 @@
+version: '3.9'
+
+services:
+  backend:
+    image: usamamuhammad323/django-playground:latest  # use the image you pulled
+    container_name: backend-server
+    restart: unless-stopped
+    volumes:
+      - django_static:/app/staticfiles  # only persist static files
+    ports:
+      - "8000:8000"
+    environment:
+      APP_TITLE: ${APP_TITLE}
+      SECRET_KEY: ${SECRET_KEY}
+      DEBUG: ${DEBUG}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      TIME_ZONE: ${TIME_ZONE}
+      STATICFILES_ROOT: /app/staticfiles
+      DB_ENGINE: ${DB_ENGINE}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_SSL_MODE: ${DB_SSL_MODE:-require}
+    healthcheck:
+      test: ["CMD", "python3", "manage.py", "check"]
+      interval: 10s
+      retries: 5
+      timeout: 5s
+      start_period: 30s
+    networks:
+      - playground
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-server
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - django_static:/app/staticfiles:ro
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - playground
+    command: [ "nginx", "-g", "daemon off;" ]
+
+volumes:
+  django_static:
+
+networks:
+  playground:

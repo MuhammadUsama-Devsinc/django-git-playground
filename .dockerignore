@@ -1,0 +1,73 @@
+## Python cache
+#**/__pycache__/
+#*.pyc
+#
+## Environments
+#.venv/
+#venv/
+#.env/
+#env/
+#
+## innore github
+#.github
+#
+## Django secrets ignore all .env files like (.env, .env.local, .env.prod, .etc)
+#.env
+#*.env.*
+#!.env.example
+#
+## database
+#*.sqlite3
+#
+## OS files
+#.DS_Store
+#Thumbs.db
+#
+## ignore git and github
+#.git
+#.github
+#
+## IDE
+#.idea/
+#.vscode/
+
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Environment / secrets (ignore all .env files except example)
+.env
+*.env.*
+!.env.example
+
+# Database
+*.sqlite3
+
+# Git / GitHub
+.git
+.github
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE / editor
+.idea/
+.vscode/
+
+# Tests / pytest cache
+.pytest_cache/
+pytest.ini
+
+# Local static files (if using collectstatic, ignore original static folder)
+
+# Optional documentation or setup files not needed in container
+DockerSetup.md

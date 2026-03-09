@@ -64,7 +64,7 @@ INSTALLED_APPS = (
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
+    # "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -110,6 +110,9 @@ if env('DB_ENGINE') == 'postgresql':
     DATABASES['default']['PASSWORD'] = env('DB_PASSWORD')
     DATABASES['default']['HOST'] = env('DB_HOST')
     DATABASES['default']['PORT'] = env('DB_PORT')
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': env('DB_SSL_MODE', default='require'),
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
