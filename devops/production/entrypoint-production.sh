@@ -2,7 +2,7 @@
 
 set -e
 
-cd app
+cd /app
 # Run migrations using absolute path to be safe
 echo "Running migrations..."
 python3 /app/manage.py migrate || echo "Migration failed"
