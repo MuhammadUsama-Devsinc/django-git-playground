@@ -31,6 +31,7 @@ jobs:
   docker-build-push:
     needs: build-and-test
     runs-on: ubuntu-latest
+    environment: Configure Production
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -38,15 +39,15 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-access-key-id: ${{ vars.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ vars.AWS_SECRET_ACCESS_KEY }}
+          aws-region: "us-east-1" # Hardcoded to region to avoid 'us-east-1c' AZ issue
 
-      - name: Log in to Docker Hub (or ECR)
+      - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ vars.DOCKER_PASSWORD }}
 
       - name: Build and Push image
         uses: docker/build-push-action@v5
@@ -59,7 +60,7 @@ jobs:
   deploy-to-ec2:
     needs: docker-build-push
     runs-on: ubuntu-latest
-
+    environment: Configure Production
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -71,11 +72,13 @@ jobs:
       - name: Deploy using SSM
         run: |
           aws ssm send-command \
-            --instance-ids ${{ vars.EC2_INSTANCE_ID }} \
+            --instance-ids "${{ vars.EC2_INSTANCE_ID }}" \
             --document-name "AWS-RunShellScript" \
-            --parameters commands='[
+            --comment "Deploying Docker update" \
+            --parameters 'commands=[
               "cd ~/config",
               "docker compose -f devops/production/docker-compose-production.yaml --env-file .env pull",
               "docker compose -f devops/production/docker-compose-production.yaml --env-file .env up -d",
               "docker image prune -f"
-            ]'
+            ]' \
+            --region "us-east-1"
