@@ -35,10 +35,20 @@ class AdminAuthenticationFormWithOTP(forms.Form):
 
 
 class OTPVerificationForm(forms.Form):
-    attrs = {"autofocus": "autofocus", "placeholder": "6-digit OTP"}
+
+    def __init__(self, *args, digits=6, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["otp_token"].max_length = digits
+        self.fields["otp_token"].widget = TextInput(
+            attrs={
+                "autofocus": "autofocus",
+                "placeholder": f"{digits}-digit OTP",
+                "maxlength": digits,
+            }
+        )
+
     otp_token = forms.CharField(
-        max_length=6,
         required=True,
         label="MFA Code",
-        widget=TextInput(attrs=attrs),
     )
