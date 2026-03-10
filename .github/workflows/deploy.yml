@@ -64,6 +64,10 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
             cd ~/config
-            docker-compose -f devops/production/docker-compose-production.yaml --env-file .env pull
+            # Remove old containers to avoid ContainerConfig bug
+            docker-compose -f devops/production/docker-compose-production.yaml down --remove-orphans || true
+            # Pull latest image directly
+            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}:${{ secrets.DOCKER_REPO_TAG }}
+            # Start fresh
             docker-compose -f devops/production/docker-compose-production.yaml --env-file .env up -d
             docker image prune -f
