@@ -167,3 +167,6 @@ APP_TITLE = env.str('APP_TITLE', default='Git Playgrund').title()
 ADMIN_SITE_HEADER = f"{APP_TITLE} Administration"
 ADMIN_SITE_TITLE = f"{APP_TITLE} Portal"
 ADMIN_INDEX_TITLE = f"Welcome to the {APP_TITLE} Administration"
+
+# MFA issuer settings
+OTP_TOTP_ISSUER = env.str('MFA_ISSUER', default=APP_TITLE)
