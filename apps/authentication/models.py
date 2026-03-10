@@ -35,5 +35,13 @@ class User(AbstractUser):
             errors["role"] = "Invalid role"
         raise_validation_errors(errors)
 
+    def set_default_superuser_role(self):
+        if not self.role and self.is_superuser:
+            self.role = self.ROLE_DEVELOPER
+
+    def save(self, *args, **kwargs):
+        self.set_default_superuser_role()
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return self.username

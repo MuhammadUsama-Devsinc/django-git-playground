@@ -9,7 +9,11 @@ from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 def generate_qr_code(user):
-    device, created = TOTPDevice.objects.get_or_create(user=user, confirmed=False)
+    # First check if user already has a device (confirmed or not)
+    device = TOTPDevice.objects.filter(user=user).first()
+    if not device:
+        device = TOTPDevice.objects.create(user=user, confirmed=False)
+
     otp_uri = device.config_url
     qr = qrcode.QRCode(
         version=1,
@@ -36,7 +40,7 @@ def verify_otp(user, otp_code):
         with transaction.atomic():
             device.confirmed = True
             device.save()
-            user.is_2fa_setup = True
+            user.is_two_factor_enabled = True
             user.save()
             return True, "OTP verified successfully."
     else:
@@ -56,3 +60,15 @@ def generate_mfa_code(secret):
 def raise_validation_errors(errors: dict):
     if errors:
         raise ValidationError(errors)
+
+
+def get_user_from_session(request):
+    from apps.authentication.models import User
+
+    user_id = request.session.get("pre_2fa_user_id")
+    if not user_id:
+        return None
+    try:
+        return User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return None

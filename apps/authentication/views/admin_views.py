@@ -5,7 +5,8 @@ from ..forms import AdminAuthenticationFormWithOTP, OTPVerificationForm
 from ..mixins import AdminContextMixin
 from ..models import User
 from ..utils.admin import login_user
-from ..utils.commons import generate_qr_code, verify_otp
+from ..utils.commons import generate_qr_code, verify_otp, get_user_from_session
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 class AdminLoginView(AdminContextMixin, View):
@@ -28,7 +29,7 @@ class AdminLoginView(AdminContextMixin, View):
 
             if user is not None:
                 request.session["pre_2fa_user_id"] = user.id
-                if user.is_staff and user.role not in User.SUPERUSER_ROLES:
+                if user.is_staff and not (user.is_superuser or user.role in User.SUPERUSER_ROLES):
                     return login_user(request, user)
                 elif not (
                     user.is_staff
@@ -50,31 +51,34 @@ class AdminLoginView(AdminContextMixin, View):
 class AdminVerifyOTPView(AdminContextMixin, View):
     template_name = "authentication/verify_otp.html"
 
-    def get_user_from_session(self, request):
-        user_id = request.session.get("pre_2fa_user_id")
-        if not user_id:
-            return None
+    def get_totp_device(self, user):
         try:
-            return User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return None
+            return TOTPDevice.objects.filter(user=user).first()
+        except Exception as e:
+            return redirect("admin-generate-qr_code")
 
     def get(self, request, *args, **kwargs):
-        user = self.get_user_from_session(request)
+        user = get_user_from_session(request)
+
         if not user:
             return redirect("admin-login")
 
-        form = OTPVerificationForm()
+        device = self.get_totp_device(user)
+        form = OTPVerificationForm(digits=device.digits)
         context = self.get_admin_context()
         context["form"] = form
         context["title"] = "Verify OTP"
+        context["digits"] = device.digits
+
         return render(request, self.template_name, context)
 
     def post(self, request, *args, **kwargs):
-        form = OTPVerificationForm(request.POST)
-        user = self.get_user_from_session(request)
+        user = get_user_from_session(request)
         if not user:
             return redirect("admin-login")
+
+        device = self.get_totp_device(user)
+        form = OTPVerificationForm(request.POST, digits=device.digits)
 
         if form.is_valid():
             otp_token = form.cleaned_data.get("otp_token")
@@ -86,23 +90,15 @@ class AdminVerifyOTPView(AdminContextMixin, View):
 
         context = self.get_admin_context()
         context["form"] = form
+        context["digits"] = device.digits
         return render(request, self.template_name, context)
 
 
 class AdminGenerateQRCodeView(AdminContextMixin, View):
     template_name = "authentication/generate_qr_code.html"
 
-    def get_user_from_session(self, request):
-        user_id = request.session.get("pre_2fa_user_id")
-        if not user_id:
-            return None
-        try:
-            return User.objects.get(id=user_id)
-        except User.DoesNotExist:
-            return None
-
     def get(self, request, *args, **kwargs):
-        user = self.get_user_from_session(request)
+        user = get_user_from_session(request)
         if not user:
             return redirect("admin-login")
 
