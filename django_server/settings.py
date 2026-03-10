@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 
 from pathlib import Path
+import environ
+import os
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -19,13 +21,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-26sbov252&bku10q!w874em&spabr@&8ebwt_7_+d#&yjb!au#"
+SECRET_KEY = env.str('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.bool('DEBUG', default=True)
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=["*"])
 
 
 # Application definition
@@ -59,6 +64,7 @@ INSTALLED_APPS = (
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -93,12 +99,20 @@ WSGI_APPLICATION = "django_server.wsgi.application"
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': f'django.db.backends.{env('DB_ENGINE', default='sqlite3')}',
+        'NAME': env('DB_NAME', default='db.sqlite3'),
     }
 }
 
+if env('DB_ENGINE') == 'postgresql':
+    DATABASES['default']['USER'] = env('DB_USER')
+    DATABASES['default']['PASSWORD'] = env('DB_PASSWORD')
+    DATABASES['default']['HOST'] = env('DB_HOST')
+    DATABASES['default']['PORT'] = env('DB_PORT')
+    DATABASES['default']['OPTIONS'] = {
+        'sslmode': env('DB_SSL_MODE', default='require'),
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -118,13 +132,23 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.TokenAuthentication",
+        "rest_framework.authentication.SessionAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
+}
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.0/topics/i18n/
 
 LANGUAGE_CODE = "en-us"
 
-TIME_ZONE = "UTC"
+TIME_ZONE = env.str('TIME_ZONE', default='UTC')
 
 USE_I18N = True
 
@@ -136,9 +160,10 @@ USE_TZ = True
 
 STATIC_URL = "/static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
+STATIC_ROOT = BASE_DIR / env('STATICFILES_ROOT', default='staticfiles')
 
 # App settings
-APP_TITLE = "Git Playground".title()
+APP_TITLE = env.str('APP_TITLE', default='Git Playgrund').title()
 ADMIN_SITE_HEADER = f"{APP_TITLE} Administration"
 ADMIN_SITE_TITLE = f"{APP_TITLE} Portal"
 ADMIN_INDEX_TITLE = f"Welcome to the {APP_TITLE} Administration"
