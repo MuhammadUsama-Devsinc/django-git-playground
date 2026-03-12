@@ -69,17 +69,9 @@ jobs:
       STATICFILES_ROOT: ${{ vars.STATICFILES_ROOT }}
     steps:
       - name: Sync devops/production folder to server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SERVER_IP }}
-          username: ubuntu
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            mkdir -p ~/config/devops/production
-
-      - name: Rsync production folder
         run: |
-          rsync -avz --delete -e "ssh -i ${{ secrets.SERVER_SSH_KEY }}" devops/production/ ubuntu@${{ secrets.SERVER_IP }}:~/config/devops/production/
+          rsync -avz --delete -e "ssh -i ${{ secrets.SERVER_SSH_KEY }} -o StrictHostKeyChecking=no" \
+          devops/production/ ubuntu@${{ secrets.SERVER_IP }}:~/config/devops/production/
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -90,22 +82,27 @@ jobs:
           script: |
             cd ~/config
             rm -f .env
+    
+            echo "ALLOWED_HOST='${ALLOWED_HOST}'" >> .env
+            echo "DEBUG='${DEBUG}'" >> .env
+            echo "APP_TITLE='${APP_TITLE}'" >> .env
+            echo "SECRET_KEY='${SECRET_KEY}'" >> .env
+            echo "DB_ENGINE='${DB_ENGINE}'" >> .env
+            echo "DB_USER='${DB_USER}'" >> .env
+            echo "DB_NAME='${DB_NAME}'" >> .env
+            echo "DB_PASSWORD='${DB_PASSWORD}'" >> .env
+            echo "DB_HOST='${DB_HOST}'" >> .env
+            echo "DB_PORT='${DB_PORT}'" >> .env
+            echo "DB_SSL_MODE='${DB_SSL_MODE}'" >> .env
+            echo "STATICFILES_ROOT='${STATICFILES_ROOT}'" >> .env
             
-            echo "ALLOWED_HOST=$ALLOWED_HOST" >> .env
-            echo "DEBUG=$DEBUG" >> .env
-            echo "APP_TITLE=$APP_TITLE" >> .env
-            echo "SECRET_KEY=$SECRET_KEY" >> .env
-            echo "DB_ENGINE=$DB_ENGINE" >> .env
-            echo "DB_USER=$DB_USER" >> .env
-            echo "DB_NAME=$DB_NAME" >> .env
-            echo "DB_PASSWORD=$DB_PASSWORD" >> .env
-            echo "DB_HOST=$DB_HOST" >> .env
-            echo "DB_PORT=$DB_PORT" >> .env
-            echo "DB_SSL_MODE=$DB_SSL_MODE" >> .env
-            echo "STATICFILES_ROOT=$STATICFILES_ROOT" >> .env
             docker-compose -f devops/production/docker-compose-production.yaml down --remove-orphans || true
-
+            
+            # Pull latest image
             docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}:${{ secrets.DOCKER_REPO_TAG }}
-
+            
+            # Start fresh
             docker-compose -f devops/production/docker-compose-production.yaml --env-file .env up -d
+            
+            # Cleanup unused images
             docker image prune -f
