@@ -54,24 +54,19 @@ jobs:
     needs: docker-build-push
     runs-on: ubuntu-latest
     environment: Production
-    env:
-      ALLOWED_HOST: ${{ vars.ALLOWED_HOST }}
-      DEBUG: ${{ vars.DEBUG }}
-      APP_TITLE: ${{ vars.APP_TITLE }}
-      SECRET_KEY: ${{ vars.SECRET_KEY }}
-      DB_ENGINE: ${{ vars.DB_ENGINE }}
-      DB_USER: ${{ vars.DB_USER }}
-      DB_NAME: ${{ vars.DB_NAME }}
-      DB_PASSWORD: ${{ vars.DB_PASSWORD }}
-      DB_HOST: ${{ vars.DB_HOST }}
-      DB_PORT: ${{ vars.DB_PORT }}
-      DB_SSL_MODE: ${{ vars.DB_SSL_MODE }}
-      STATICFILES_ROOT: ${{ vars.STATICFILES_ROOT }}
     steps:
-      - name: Sync devops/production folder to server
-        run: |
-          rsync -avz --delete -e "ssh -i ${{ secrets.SERVER_SSH_KEY }} -o StrictHostKeyChecking=no" \
-          devops/production/ ubuntu@${{ secrets.SERVER_IP }}:~/config/devops/production/
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Copy production config files to server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ubuntu
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          source: "devops/production/*"
+          target: "~/config"
+          strip_components: 0
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.3
@@ -79,30 +74,47 @@ jobs:
           host: ${{ secrets.SERVER_IP }}
           username: ubuntu
           key: ${{ secrets.SERVER_SSH_KEY }}
+          envs: ALLOWED_HOSTS,DEBUG,APP_TITLE,SECRET_KEY,DB_ENGINE,DB_USER,DB_NAME,DB_PASSWORD,DB_HOST,DB_PORT,DB_SSL_MODE,STATICFILES_ROOT,TIME_ZONE,DOCKER_IMAGE
           script: |
             cd ~/config
             rm -f .env
-    
-            echo "ALLOWED_HOST='${ALLOWED_HOST}'" >> .env
-            echo "DEBUG='${DEBUG}'" >> .env
-            echo "APP_TITLE='${APP_TITLE}'" >> .env
-            echo "SECRET_KEY='${SECRET_KEY}'" >> .env
-            echo "DB_ENGINE='${DB_ENGINE}'" >> .env
-            echo "DB_USER='${DB_USER}'" >> .env
-            echo "DB_NAME='${DB_NAME}'" >> .env
-            echo "DB_PASSWORD='${DB_PASSWORD}'" >> .env
-            echo "DB_HOST='${DB_HOST}'" >> .env
-            echo "DB_PORT='${DB_PORT}'" >> .env
-            echo "DB_SSL_MODE='${DB_SSL_MODE}'" >> .env
-            echo "STATICFILES_ROOT='${STATICFILES_ROOT}'" >> .env
-            
+
+            echo "ALLOWED_HOSTS=${ALLOWED_HOSTS}" >> .env
+            echo "DEBUG=${DEBUG}" >> .env
+            echo "APP_TITLE=${APP_TITLE}" >> .env
+            echo "SECRET_KEY=${SECRET_KEY}" >> .env
+            echo "DB_ENGINE=${DB_ENGINE}" >> .env
+            echo "DB_USER=${DB_USER}" >> .env
+            echo "DB_NAME=${DB_NAME}" >> .env
+            echo "DB_PASSWORD=${DB_PASSWORD}" >> .env
+            echo "DB_HOST=${DB_HOST}" >> .env
+            echo "DB_PORT=${DB_PORT}" >> .env
+            echo "DB_SSL_MODE=${DB_SSL_MODE}" >> .env
+            echo "STATICFILES_ROOT=${STATICFILES_ROOT}" >> .env
+            echo "TIME_ZONE=${TIME_ZONE}" >> .env
+
             docker-compose -f devops/production/docker-compose-production.yaml down --remove-orphans || true
-            
+
             # Pull latest image
-            docker pull ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}:${{ secrets.DOCKER_REPO_TAG }}
-            
+            docker pull ${DOCKER_IMAGE}
+
             # Start fresh
             docker-compose -f devops/production/docker-compose-production.yaml --env-file .env up -d
-            
+
             # Cleanup unused images
             docker image prune -f
+        env:
+          ALLOWED_HOSTS: ${{ vars.ALLOWED_HOSTS }}
+          DEBUG: ${{ vars.DEBUG }}
+          APP_TITLE: ${{ vars.APP_TITLE }}
+          SECRET_KEY: ${{ secrets.SECRET_KEY }}
+          DB_ENGINE: ${{ vars.DB_ENGINE }}
+          DB_USER: ${{ vars.DB_USER }}
+          DB_NAME: ${{ vars.DB_NAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          DB_HOST: ${{ vars.DB_HOST }}
+          DB_PORT: ${{ vars.DB_PORT }}
+          DB_SSL_MODE: ${{ vars.DB_SSL_MODE }}
+          STATICFILES_ROOT: ${{ vars.STATICFILES_ROOT }}
+          TIME_ZONE: ${{ vars.TIME_ZONE }}
+          DOCKER_IMAGE: ${{ secrets.DOCKER_USERNAME }}/${{ secrets.DOCKER_REPO_NAME }}:${{ secrets.DOCKER_REPO_TAG }}
