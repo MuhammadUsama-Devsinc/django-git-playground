@@ -8,7 +8,31 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    environment: Production
+    env:
+      ALLOWED_HOSTS: ${{ vars.TEST_ALLOWED_HOSTS }}
+      DEBUG: ${{ vars.TEST_DEBUG }}
+      DB_ENGINE: ${{ vars.TEST_DB_ENGINE }}
+      DB_NAME: ${{ vars.TEST_DB_NAME }}
+      APP_TITLE: ${{ vars.APP_TITLE }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      STATICFILES_ROOT: ${{ vars.STATICFILES_ROOT }}
+      TIME_ZONE: ${{ vars.TIME_ZONE }}
+
     steps:
+      - name: Create .env file
+        run: |
+          cat <<EOF > .env
+          ALLOWED_HOSTS=${ALLOWED_HOSTS}
+          DEBUG=${DEBUG}
+          APP_TITLE=${APP_TITLE}
+          SECRET_KEY=${SECRET_KEY}
+          DB_ENGINE=${DB_ENGINE}
+          DB_NAME=${DB_NAME}
+          STATICFILES_ROOT=${STATICFILES_ROOT}
+          TIME_ZONE=${TIME_ZONE}
+          EOF
+
       - name: Checkout code
         uses: actions/checkout@v4
 
@@ -21,12 +45,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          # Add any test dependencies if not in requirements.txt
-          pip install pytest pytest-django
 
       - name: Run tests
-        run: |
-          pytest -v || echo "No tests found or tests failed"
+        run: pytest -v
 
   docker-build-push:
     needs: build-and-test
