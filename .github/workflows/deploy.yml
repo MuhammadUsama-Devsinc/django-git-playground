@@ -15,26 +15,25 @@ jobs:
       DB_ENGINE: ${{ vars.TEST_DB_ENGINE }}
       DB_NAME: ${{ vars.TEST_DB_NAME }}
       APP_TITLE: ${{ vars.APP_TITLE }}
-      SECRET_KEY: ${{ secrets.SECRET_KEY }}
       STATICFILES_ROOT: ${{ vars.STATICFILES_ROOT }}
       TIME_ZONE: ${{ vars.TIME_ZONE }}
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create .env file
         run: |
           cat <<EOF > .env
           ALLOWED_HOSTS=${ALLOWED_HOSTS}
           DEBUG=${DEBUG}
           APP_TITLE=${APP_TITLE}
-          SECRET_KEY=${SECRET_KEY}
+          SECRET_KEY=test-secret-key-for-ci-only-not-for-production
           DB_ENGINE=${DB_ENGINE}
           DB_NAME=${DB_NAME}
           STATICFILES_ROOT=${STATICFILES_ROOT}
           TIME_ZONE=${TIME_ZONE}
           EOF
-
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v5
