@@ -24,11 +24,11 @@ services:
       DB_PORT: ${DB_PORT:-5432}
       DB_SSL_MODE: ${DB_SSL_MODE:-require}
     healthcheck:
-      test: ["CMD", "python3", "manage.py", "check"]
-      interval: 10s
+      test: [ "CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/healthz/\")'" ]
+      interval: 5s
       retries: 5
       timeout: 5s
-      start_period: 30s
+      start_period: 10s
     networks:
       - playground
 
