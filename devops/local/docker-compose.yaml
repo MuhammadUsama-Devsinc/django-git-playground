@@ -10,8 +10,6 @@ services:
     restart: unless-stopped
     volumes:
       - django_static:/app/staticfiles
-    ports:
-      - "8000:8000"
     environment:
       APP_TITLE: ${APP_TITLE}
       SECRET_KEY: ${SECRET_KEY}
